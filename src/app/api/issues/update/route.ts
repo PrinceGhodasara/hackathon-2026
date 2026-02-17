@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const allowed = new Set((projectMembers || []).map((m) => m.user_id))
     const filtered = memberIds.filter((id: string) => allowed.has(id))
     memberIds.length = 0
-    filtered.forEach((id) => memberIds.push(id))
+    filtered.forEach((id: string) => memberIds.push(id))
   }
 
   if (sprintId) {

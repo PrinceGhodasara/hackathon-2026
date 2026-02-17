@@ -20,21 +20,31 @@ export default async function BoardsHomePage() {
 
   const isAdmin = profile?.role === 'admin'
 
-  const { data: projects } = isAdmin
+  const { data: adminProjects } = isAdmin
     ? await supabase
         .from('projects')
         .select('id, name, description')
         .order('created_at', { ascending: false })
-    : await supabase
+    : { data: [] }
+
+  const { data: memberProjects } = !isAdmin
+    ? await supabase
         .from('project_members')
         .select('project_id, projects(id, name, description)')
         .eq('user_id', user.id)
+    : { data: [] }
 
   const items = isAdmin
-    ? (projects as { id: string; name: string; description: string | null }[]) || []
-    : ((projects as { project_id: string; projects: { id: string; name: string; description: string | null } | null }[]) || [])
+    ? (adminProjects as { id: string; name: string; description: string | null }[]) || []
+    : ((memberProjects as {
+        project_id: string
+        projects: { id: string; name: string; description: string | null } | null
+      }[]) || [])
         .map((row) => row.projects)
-        .filter((row): row is { id: string; name: string; description: string | null } => Boolean(row))
+        .filter(
+          (row): row is { id: string; name: string; description: string | null } =>
+            Boolean(row)
+        )
 
   return (
     <div className="space-y-6">

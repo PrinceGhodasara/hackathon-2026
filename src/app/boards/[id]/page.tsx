@@ -6,11 +6,13 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 type BoardPageProps = {
-  params: { id: string }
-  searchParams?: { sprint?: string }
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ sprint?: string }>
 }
 
 export default async function BoardPage({ params, searchParams }: BoardPageProps) {
+  const { id } = await params
+  const resolvedSearchParams = (await searchParams) || {}
   const supabase = await createClient()
 
   const {
@@ -28,7 +30,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
   const { data: project } = await supabase
     .from('projects')
     .select('id, name, description')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!project) {
@@ -42,10 +44,13 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
   const { data: sprints } = await supabase
     .from('sprints')
     .select('id, name, status, created_at')
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .order('created_at', { ascending: false })
 
-  const sprintParam = typeof searchParams?.sprint === 'string' ? searchParams?.sprint : ''
+  const sprintParam =
+    typeof resolvedSearchParams.sprint === 'string'
+      ? resolvedSearchParams.sprint
+      : ''
   const selectedSprint =
     (sprints || []).find((sprint) => sprint.id === sprintParam) ||
     (sprints || []).find((sprint) => sprint.status === 'active') ||
@@ -73,7 +78,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
     .select(
       'id, title, description, status, priority, type, reporter_id, sprint_id, story_points, complexity, due_date'
     )
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .eq('sprint_id', selectedSprint.id)
     .order('created_at', { ascending: false })
 
@@ -116,7 +121,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
   const { data: memberLinks } = await supabase
     .from('project_members')
     .select('user_id')
-    .eq('project_id', params.id)
+    .eq('project_id', id)
 
   const memberIds = memberLinks?.map((link) => link.user_id) || []
   const { data: members } =

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Plus, X, Bug, CheckSquare, BookOpen, Zap, Layers, Trash2 } from 'lucide-react'
 import FullScreenLoader from '@/components/full-screen-loader'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -474,14 +473,16 @@ export default function BoardIssues({
       }
       toast.success('Issue status updated.')
       router.refresh()
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIssueList((prev) =>
         prev.map((issue) =>
           issue.id === issueId ? { ...issue, status: previousStatus } : issue
         )
       )
-      setError(err.message || 'Unable to update status.')
-      toast.error(err.message || 'Unable to update status.')
+      const message =
+        err instanceof Error ? err.message : 'Unable to update status.'
+      setError(message)
+      toast.error(message)
     }
   }
 
@@ -822,13 +823,6 @@ export default function BoardIssues({
                     const canEdit = canEditIssue
                     const canOpenIssue = true
                     const style = typeStyles[issue.type] || typeStyles.task
-                    const assigneeNames = assignees
-                      .map(
-                        (assigneeId) =>
-                          members.find((member) => member.id === assigneeId)?.email ||
-                          assigneeId
-                      )
-                      .filter(Boolean)
                     const primaryAssigneeId = assignees[0]
                     const primaryAssigneeEmail =
                       members.find((member) => member.id === primaryAssigneeId)

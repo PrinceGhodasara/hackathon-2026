@@ -109,7 +109,7 @@ export default function DashboardCharts({
                   color: '#e4e4e7',
                 }}
                 labelStyle={{ color: '#a1a1aa' }}
-                formatter={(value: number) => [`${value} hours`, 'Hours']}
+                formatter={(value) => [`${value ?? 0} hours`, 'Hours']}
                 labelFormatter={(label) => `Project: ${label}`}
               />
               <Bar

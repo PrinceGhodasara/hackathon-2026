@@ -2,10 +2,11 @@ import BacklogPanel from '@/components/backlog-panel'
 import { createClient } from '@/lib/supabase/server'
 
 type BacklogPageProps = {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function BacklogPage({ params }: BacklogPageProps) {
+  const { id } = await params
   const supabase = await createClient()
 
   const {
@@ -23,7 +24,7 @@ export default async function BacklogPage({ params }: BacklogPageProps) {
   const { data: project } = await supabase
     .from('projects')
     .select('id, name, description')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!project) {
@@ -37,7 +38,7 @@ export default async function BacklogPage({ params }: BacklogPageProps) {
   const { data: sprints } = await supabase
     .from('sprints')
     .select('id, name, goal, start_date, end_date, status, created_at')
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .order('created_at', { ascending: false })
 
   const { data: backlogIssues } = await supabase
@@ -45,7 +46,7 @@ export default async function BacklogPage({ params }: BacklogPageProps) {
     .select(
       'id, title, priority, type, status, reporter_id, sprint_id, story_points'
     )
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .is('sprint_id', null)
     .order('created_at', { ascending: false })
 
@@ -61,7 +62,7 @@ export default async function BacklogPage({ params }: BacklogPageProps) {
   const { data: memberLinks } = await supabase
     .from('project_members')
     .select('user_id')
-    .eq('project_id', params.id)
+    .eq('project_id', id)
 
   const memberIds = memberLinks?.map((link) => link.user_id) || []
   const { data: members } =

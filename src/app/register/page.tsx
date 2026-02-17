@@ -42,8 +42,10 @@ export default function RegisterPage() {
 
       router.push('/dashboard')
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'Unable to create account.')
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to create account.'
+      setError(message)
     } finally {
       setIsLoading(false)
     }
