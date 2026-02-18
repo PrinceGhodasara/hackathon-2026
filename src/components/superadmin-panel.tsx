@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 import { toast } from 'sonner'
 import FullScreenLoader from '@/components/full-screen-loader'
 
@@ -42,25 +43,55 @@ export default function SuperAdminPanel({
     const password = String(formData.get('password') || '')
 
     try {
-      const response = await fetch('/api/admin/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!url || !anonKey) {
+        setCreateUserMessage('Missing Supabase client configuration.')
+        toast.error('Missing Supabase client configuration.')
+        return
+      }
+
+      const anonClient = createBrowserClient(url, anonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
       })
 
-      const data = await response.json()
-      setCreateUserMessage(data.error || 'Member created.')
-      if (response.ok) {
-        toast.success('Member created.')
-      } else {
-        toast.error(data.error || 'Unable to create member.')
+      const { data, error } = await anonClient.auth.signUp({
+        email,
+        password,
+      })
+
+      if (error) {
+        setCreateUserMessage(error.message)
+        toast.error(error.message || 'Unable to create member.')
+        return
       }
-      if (response.ok) {
-        form.reset()
+
+      const userId = data?.user?.id
+      if (userId) {
+        const { error: profileError } = await anonClient
+          .from('profiles')
+          .upsert({ id: userId, email, role: 'member' }, { onConflict: 'id' })
+
+        if (profileError) {
+          setCreateUserMessage(profileError.message)
+          toast.error(profileError.message || 'Unable to create member.')
+          return
+        }
       }
-    } catch {
-      setCreateUserMessage('Unable to create member.')
-      toast.error('Unable to create member.')
+
+      setCreateUserMessage('Member created.')
+      toast.success('Member created.')
+      form.reset()
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to create member.'
+      setCreateUserMessage(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
